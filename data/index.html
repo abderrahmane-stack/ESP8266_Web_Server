@@ -1,0 +1,139 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>SPIFFS  ESP8266 </title>
+  
+  <script src = "js/chart.min.js"></script>  
+  <script src="js/jquery.min.js"></script>
+  <link href="css/style.css" rel="stylesheet" type="text/css">
+  <link href="css/bootstrap.min.css"  rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<div class="container" style="text-align:center;">
+	
+	<p style='font-size:30px;'>
+		Led State :
+		<span id='state'></span>
+  </p>
+	
+	<p>
+		<button class="btn btn-success" onclick=" state='ON';spanL.innerHTML=state;  var xhttpOn = new XMLHttpRequest(); xhttpOn.open('GET', 'LEDOn', true); xhttpOn.send(); ">ON</button>&nbsp;
+		<button class="btn btn-danger" onclick=" state='OFF';spanL.innerHTML=state; var xhttpOff = new XMLHttpRequest(); xhttpOff.open('GET', 'LEDOff', true); xhttpOff.send(); " >OFF</button>
+	</p>
+	
+	
+	
+</div>
+    <div style="text-align:center;"><br>Real Time Data Humidity, Temperature Logging with Graphs on ESP8266</div>
+    <div class="chart-container" style="height:350px; position: relative; width:100%">
+        <canvas height="400" id="Chart" width="400"></canvas>
+    </div>
+<div>
+  <table id="dataTable">
+    <tr><th>Time</th><th>Temperaure (&deg;C)</th><th>Humidity (%)</th></tr>
+  </table>
+</div>
+<br>
+<br>  
+
+<script>
+
+var state = "OFF";
+var spanL = document.getElementById("state");
+spanL.innerHTML=state;
+//Graphs visit: https://www.chartjs.org
+var Tvalues = [];
+var Hvalues = [];
+var timeStamp = [];
+function showGraph()
+{
+    var ctx = document.getElementById("Chart").getContext('2d');
+    var Chart2 = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: timeStamp,  //Bottom Labeling
+            datasets: [
+			{
+                label: "Temperature",
+                fill: false,  //Try with true
+                backgroundColor: 'rgba( 243, 156, 18 , 1)', //Dot marker color
+                borderColor: 'rgba( 243, 156, 18 , 1)', //Graph Line Color
+                data: Tvalues,
+            },
+            {
+                label: "Humidity",
+                fill: false,  //Try with true
+                backgroundColor: 'rgba(156, 18, 243 , 1)', //Dot marker color
+                borderColor: 'rgba(156, 18, 243 , 1)', //Graph Line Color
+                data: Hvalues,
+            }],
+        },
+        options: {
+
+            maintainAspectRatio: false,
+            elements: {
+            line: {
+                    tension: 0.5 //Smoothening (Curved) of data lines
+                }
+            },
+            scales: {
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero:true
+                        }
+                    }]
+            }
+        }
+    });
+
+}
+
+//On Page load show graphs
+window.onload = function() {
+  console.log(new Date().toLocaleTimeString());
+};
+
+
+setInterval(function() {
+  // Call a function repetatively with 5 Second interval
+  getData();
+}, 5000); //5000mSeconds update rate
+ 
+function getData() {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+  var time = new Date().toLocaleTimeString();
+  var txt = this.responseText;
+  var obj = JSON.parse(txt); 
+  if(timeStamp.length>=50){
+   Tvalues.unshift();
+   Hvalues.unshift();
+  }
+      Tvalues.push(obj.Temperature);
+      Hvalues.push(obj.Humidity);
+      timeStamp.push(time);
+      showGraph();  //Update Graphs
+  //Update Data Table
+    var table = document.getElementById("dataTable");
+    var row = table.insertRow(1); 
+    var cell1 = row.insertCell(0);
+    var cell2 = row.insertCell(1);
+    var cell3 = row.insertCell(2);
+    cell1.innerHTML = time;
+    cell2.innerHTML = obj.Temperature;
+    cell3.innerHTML = obj.Humidity;
+    }
+  };
+  xhttp.open("GET", "readTH", true); 
+  xhttp.send();
+}
+
+
+</script>
+</body>
+
+</html>
+
